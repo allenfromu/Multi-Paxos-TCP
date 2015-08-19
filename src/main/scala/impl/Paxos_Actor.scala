@@ -51,8 +51,6 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
    private var leader:Int = this.id
    private var leading_instance:BigInt = BigInt(0)
    private var leader_live = true
-   private var socket:ActorRef = null
-   private var lock1 = new Object()
    private val filename = "/tmp/Node_"+this.id+".txt"
    try{
      logger.info("Trying to read logs from disk.")
@@ -264,33 +262,38 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
   }
   
   def send_heartbeat(){
-    if(socket != null){      
-      for((k,v)<-pm){
-        var p = "akka.tcp://RemoteSystem"+k+"@"+v._1+":"+v._2+"/user/Paxos"+k            
-        context.actorSelection(p) ! receive_heartbeat(this.next_instance,this.id)      
-      }
-    }      
+    
+    for((k,v)<-pm){
+      var p = "akka.tcp://RemoteSystem"+k+"@"+v._1+":"+v._2+"/user/Paxos"+k            
+      context.actorSelection(p) ! receive_heartbeat(this.next_instance,this.id)      
+    }
+          
   }
   
   def send_leader_liveness(){
+    
     if(this.leading_instance == this.next_instance && this.id == this.leader){
       for((k,v)<-pm){
         var p = "akka.tcp://RemoteSystem"+k+"@"+v._1+":"+v._2+"/user/Paxos"+k         
         context.actorSelection(p) ! leader_liveness()
       }
     }     
+    
   }
   
   def check_leader_liveness(){
+    
     if(!this.leader_live){
       logger.info("leader:"+this.leader+" was not alive, updating leadership")
       this.leading_instance = this.next_instance
       this.leader = this.id
     }
     this.leader_live = false
+    
   }
   
   def check_and_update_instance(){
+    
     if(this.next_instance < this.leading_instance){
       var p = "akka.tcp://RemoteSystem"+this.leader+"@"+pm(this.leader)._1+":"+pm(this.leader)._2+"/user/Paxos"+this.leader             
       context.actorSelection(p) ! instance_request(this.next_instance)
@@ -299,6 +302,7 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
   }
   
   def check_and_update_proposal_array(){
+    
     if(this.proposing_value == null && this.proposal_values.size != 0){
       var v = this.proposal_values(0)
       var p = "akka.tcp://RemoteSystem"+this.id+"@"+pm(this.id)._1+":"+pm(this.id)._2+"/user/Paxos"+id              
