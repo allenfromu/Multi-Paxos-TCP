@@ -108,7 +108,7 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
           sender ! receive_nack(ins,pid)         
         }     
       
-     }
+    }
     
     case receive_promise(ins,nid, acc_v_id, promised_pid) => {
       
@@ -140,6 +140,7 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
     }
     
     case receive_nack(ins,higher_pid) => {
+      
       logger.info("Receive nack{instance:"+ins+",higher_pid:"+higher_pid.toString()+"} from:"+sender.path.toString())          
       if(ins == this.next_instance && this.proposing_id != null && higher_pid.isGreater(this.proposing_id)){
         this.proposing_id = new ProposalID(higher_pid.getNumber+1,this.id)
@@ -164,26 +165,29 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
           logger.info("send back nack to remote:["+sender.path.toString()+"]")
           sender ! receive_nack(ins, pid)
        }
+      
     }
         
     case accepted(ins, nid, acc_v, acc_pid) =>{
 
       logger.info("learning a value:["+acc_v+"] from node "+nid)
-      var key = acc_pid.toString()           
-      if(!this.learned_proposals.contains(key)){
-         this.learned_proposals+=(key->(acc_v,acc_pid,1))
-      }else{
-        var temp1 = this.learned_proposals(key)
-        var temp2 = temp1._3+1
-        this.learned_proposals+=(key->(acc_v,acc_pid,temp2))
-        if(temp2 >= this.quorum_size){
-          this.proposing_value = null
-          this.proposing_id = null
-          this.next_instance+=1
-          this.learned_proposals = Map()
-          print("\nLearned value:"+acc_v+",instance:"+this.next_instance+"\n->")
-       }
-      } 
+      var key = acc_pid.toString()+"_"+ins           
+      if(ins >= this.next_instance){
+        if(!this.learned_proposals.contains(key)){
+           this.learned_proposals+=(key->(acc_v,acc_pid,1))
+        }else{
+          var temp1 = this.learned_proposals(key)
+          var temp2 = temp1._3+1
+          this.learned_proposals+=(key->(acc_v,acc_pid,temp2))
+          if(temp2 >= this.quorum_size){
+            this.proposing_value = null
+            this.proposing_id = null
+            this.next_instance+=1
+            this.learned_proposals = Map()
+            print("\nLearned value:"+acc_v+",instance:"+this.next_instance+"\n->")
+         }
+        } 
+      }
       
     }      
        
@@ -199,9 +203,9 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
         context.actorSelection(p) ! receive_prepare(this.next_instance,this.proposing_id)
         logger.info("Send prepare{instance:["+this.next_instance+"], proposal_id:"+this.proposing_id.toString()+ "} to node:"+k)
       }                  
-    }else{
+     }else{
       this.proposal_values=this.proposal_values:+va
-    }
+     }
     
    }
    
@@ -238,7 +242,6 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
    }      
 
     
-    
    case propose(v:Serializable, nid:Int) => {
      
       if(nid <= pm.size){
@@ -250,10 +253,10 @@ class Paxos_Actor(val pm:Map[Int,(String,Int)], val id:Int) extends Actor{
     }
     
     case Print_logs() =>{
-      
       println()
-      for((k,v)<-logs){
-        println("instance:"+k+", value:"+v._1)
+      for(i <-0 until this.leading_instance.toInt){
+        if(logs.contains(i))
+          println("instance:"+i+", value:"+this.logs(i))
       }
       println("->")
     }
