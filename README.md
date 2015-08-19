@@ -11,7 +11,7 @@ This is project is implemented with a reliable network transmission protocol -- 
      ->brew install sbt
    ```
   * For more instructions about installing SBT on any type of OS, visit <a href="http://www.scala-sbt.org/release/tutorial/Setup.html" target="_blank">this link</a>
- * Clone the project from repo: https://github.com/allenfromu/Multi-Paxos.git
+ * Clone the project from repo: https://github.com/allenfromu/Multi-Paxos-TCP.git
  * Go to the Multi-Paxos directory from terminal and then run command: 
  ``` 
  
