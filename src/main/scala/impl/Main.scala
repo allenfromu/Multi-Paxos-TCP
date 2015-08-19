@@ -2,7 +2,6 @@ package impl
 
 import akka.actor.ActorSystem
 import akka.actor.Props
-import akka.actor.actorRef2Scala
 import java.util.logging.SimpleFormatter
 import java.util.logging.FileHandler
 import java.util.logging.Logger
